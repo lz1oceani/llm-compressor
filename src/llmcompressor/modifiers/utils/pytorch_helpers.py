@@ -102,6 +102,11 @@ def run_calibration_forward(
 
         # TODO: not ideal, figure out where we aren't freeing memory instead
         # currently without this we run OOM on the 2nd forward pass
+        
+        import torch
+        devices = [torch.device(f'cuda:{i}') for i in range(torch.cuda.device_count())]
+        for device in devices:
+            torch.cuda.synchronize(device)
         torch.cuda.empty_cache()
 
     return intermediates

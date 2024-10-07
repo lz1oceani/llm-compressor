@@ -59,6 +59,7 @@ class GPTQWrapper(ModuleCompressionWrapper):
         self.register_buffer(
             "H", torch.zeros((self.columns, self.columns), device=self.dev)
         )
+        logger.info(f"GPTQWrapper: create Hessian buffer for {name}, size {self.H.shape}, device {self.dev}!")
 
     def add_batch(self, inp: torch.Tensor, out: torch.Tensor):
         """

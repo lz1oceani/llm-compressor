@@ -159,6 +159,7 @@ class GPTQWrapper(ModuleCompressionWrapper):
         W[:, dead] = 0
 
         Losses = torch.zeros(self.rows, device=self.dev)
+        self._log_gpu_usage()
 
         # compute inverse hessian in place to save memory
         damp = percdamp * torch.mean(torch.diag(self.H))
@@ -168,6 +169,7 @@ class GPTQWrapper(ModuleCompressionWrapper):
         self.H = torch.cholesky_inverse(self.H)
         self.H = torch.linalg.cholesky(self.H, upper=True)
         Hinv = self.H
+        self._log_gpu_usage()
 
         # See section 3.4 of https://arxiv.org/abs/2203.07259
         for i1 in range(0, self.columns, blocksize):
@@ -307,18 +309,9 @@ class GPTQWrapper(ModuleCompressionWrapper):
         """
         perm = torch.argsort(torch.diag(H), descending=True)
         return W[:, perm], H[perm][:, perm], perm
-
-    def _log_metrics(self, start_tick: float, losses: torch.Tensor):
-        """
-        Log metrics related to compression algorithm
-
-        :param start_tick: time when algorithm started"
-        :param losses: loss as result of algorithm
-        """
+    
+    def _log_gpu_usage(self):
         patch = logger.patch(lambda r: r.update(function="compress"))
-        patch.log("METRIC", "time %.2f" % (time.time() - start_tick))
-        patch.log("METRIC", "error %.2f" % torch.sum(losses).item())
-
         gpu_usage = get_GPU_memory_usage()
         if len(gpu_usage) > 0:
             for i in range(len(gpu_usage)):
@@ -332,7 +325,19 @@ class GPTQWrapper(ModuleCompressionWrapper):
                     ),
                 )
 
+    def _log_metrics(self, start_tick: float, losses: torch.Tensor):
+        """
+        Log metrics related to compression algorithm
+
+        :param start_tick: time when algorithm started"
+        :param losses: loss as result of algorithm
+        """
+        patch = logger.patch(lambda r: r.update(function="compress"))
+        patch.log("METRIC", "time %.2f" % (time.time() - start_tick))
+        patch.log("METRIC", "error %.2f" % torch.sum(losses).item())
         patch.log(
             "METRIC",
             f"Compressed layer size: {get_layer_size_bytes(self.layer)} MB",
         )
+        
+        self._log_gpu_usage()

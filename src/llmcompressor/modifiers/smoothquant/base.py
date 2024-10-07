@@ -305,6 +305,9 @@ class SmoothQuantModifier(Modifier):
                     smooth(layer)
                 smooth(smooth_layer)
 
+        devices = [torch.device(f'cuda:{i}') for i in range(torch.cuda.device_count())]
+        for device in devices:
+            torch.cuda.synchronize(device)
         # clear out allocated smoothing scales
         torch.cuda.empty_cache()
 

@@ -1076,6 +1076,9 @@ def memory_aware_threshold(tensor: torch.Tensor, idx: int) -> Tensor:
             "will attempt to recover. Consider setting env variable "
             f"{MEMORY_BOUNDED}=True in future runs."
         )
+        devices = [torch.device(f'cuda:{i}') for i in range(torch.cuda.device_count())]
+        for device in devices:
+            torch.cuda.synchronize(device)
         torch.cuda.empty_cache()
         os.environ[MEMORY_BOUNDED] = "True"
         return torch.kthvalue(tensor.view(-1), idx + 1)[0]

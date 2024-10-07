@@ -300,6 +300,10 @@ class GPTQModifier(Modifier):
         if not self.sequential_update:
             del intermediates
             gc.collect()
+            
+            devices = [torch.device(f'cuda:{i}') for i in range(torch.cuda.device_count())]
+            for device in devices:
+                torch.cuda.synchronize(device)
             torch.cuda.empty_cache()
 
         num_layers = len(self.compressible_layers_)
@@ -325,6 +329,9 @@ class GPTQModifier(Modifier):
                 del unquantized_outputs
 
             gc.collect()
+            devices = [torch.device(f'cuda:{i}') for i in range(torch.cuda.device_count())]
+            for device in devices:
+                torch.cuda.synchronize(device)
             torch.cuda.empty_cache()
 
         self.model.config.use_cache = forward_pass_use_cache

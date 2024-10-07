@@ -134,6 +134,9 @@ class LayerCompressor:
             device = get_execution_device(self.layer)
             output = self.layer(*tensors_to_device(args, device), **kwargs)
             outputs[idx] = (tensors_to_device(output, "cpu"), kwargs)
+            devices = [torch.device(f'cuda:{i}') for i in range(torch.cuda.device_count())]
+            for device in devices:
+                torch.cuda.synchronize(device)
             torch.cuda.empty_cache()
 
         return outputs
@@ -158,6 +161,9 @@ class LayerCompressor:
                     set_layer(full_name, module_wrapper.layer, self.model)
             else:
                 set_layer(name, module_wrapper.layer, self.layer)
+            devices = [torch.device(f'cuda:{i}') for i in range(torch.cuda.device_count())]
+            for device in devices:
+                torch.cuda.synchronize(device)
             torch.cuda.empty_cache()
         self.modules = None
 
@@ -175,6 +181,10 @@ class LayerCompressor:
                 module.free()
 
         self.layer.apply(compress_module)
+        
+        devices = [torch.device(f'cuda:{i}') for i in range(torch.cuda.device_count())]
+        for device in devices:
+            torch.cuda.synchronize(device)
         torch.cuda.empty_cache()
 
     def _get_full_submodule_name(self, name):

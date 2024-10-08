@@ -199,11 +199,17 @@ class GPTQModifier(Modifier):
             # split by FSDP. For Transformers models this is equivalent to the
             # decoder layers (ie LlamaDecoderLayer)
             self.sequential_targets = get_no_split_params(modifiable_model)
-        logger.info(f"GPTQModifier on_initialize: begin initialize_compression!")    
+            
+        from pyt.meta.process_utils import get_total_memory
+        
+        logger.info(f"GPTQModifier on_initialize: begin initialize_compression!")
+        logger.info(f"Total memory: {get_total_memory()}")
         self.initialize_compression(modifiable_model, calibration_dataloader)
         logger.info(f"GPTQModifier on_initialize: begin apply_compression!")
+        logger.info(f"Total memory: {get_total_memory()}")
         self.apply_compression(calibration_dataloader)
         logger.info(f"GPTQModifier on_initialize: apply freeze_module_quantization!")
+        logger.info(f"Total memory: {get_total_memory()}")
         state.model.apply(freeze_module_quantization)
 
         return True

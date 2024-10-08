@@ -323,10 +323,14 @@ class GPTQModifier(Modifier):
                 logger.info(f"Calibrating {layer_compressor.name}...")
                 layer_compressor.pre_compress()
                 unquantized_outputs = layer_compressor.calibrate_layer(intermediates)
+            
+            logger.info(f"\n===== After Pre-compressing layer {idx+1}/{num_layers} " " =====")
 
             layer_compressor.compress()
             layer_compressor.post_compress()
             layer_compressor.revert_layer_wrappers()
+            
+            logger.info(f"\n===== After Post-compressing layer {idx+1}/{num_layers} " " =====")
 
             if self.sequential_update:
                 quantized_outputs = layer_compressor.calibrate_layer(intermediates)
@@ -334,6 +338,7 @@ class GPTQModifier(Modifier):
                 logger.info(f"Mean output error from quantization: {error:.3f}")
                 intermediates = quantized_outputs
                 del unquantized_outputs
+            logger.info(f"\n===== Finish compressing layer {idx+1}/{num_layers} " " =====")
 
             devices = [torch.device(f'cuda:{i}') for i in range(torch.cuda.device_count())]
             for device in devices:

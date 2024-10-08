@@ -199,9 +199,11 @@ class GPTQModifier(Modifier):
             # split by FSDP. For Transformers models this is equivalent to the
             # decoder layers (ie LlamaDecoderLayer)
             self.sequential_targets = get_no_split_params(modifiable_model)
-
+        logger.info(f"GPTQModifier on_initialize: begin initialize_compression!")    
         self.initialize_compression(modifiable_model, calibration_dataloader)
+        logger.info(f"GPTQModifier on_initialize: begin apply_compression!")
         self.apply_compression(calibration_dataloader)
+        logger.info(f"GPTQModifier on_initialize: apply freeze_module_quantization!")
         state.model.apply(freeze_module_quantization)
 
         return True
@@ -299,12 +301,11 @@ class GPTQModifier(Modifier):
         # empty cache if not using sequential update
         if not self.sequential_update:
             del intermediates
-            gc.collect()
-            
             devices = [torch.device(f'cuda:{i}') for i in range(torch.cuda.device_count())]
             for device in devices:
                 torch.cuda.synchronize(device)
             torch.cuda.empty_cache()
+            gc.collect()
 
         num_layers = len(self.compressible_layers_)
         for idx, layer_compressor in enumerate(self.layer_compressors_):
@@ -328,11 +329,11 @@ class GPTQModifier(Modifier):
                 intermediates = quantized_outputs
                 del unquantized_outputs
 
-            gc.collect()
             devices = [torch.device(f'cuda:{i}') for i in range(torch.cuda.device_count())]
             for device in devices:
                 torch.cuda.synchronize(device)
             torch.cuda.empty_cache()
+            gc.collect()
 
         self.model.config.use_cache = forward_pass_use_cache
 

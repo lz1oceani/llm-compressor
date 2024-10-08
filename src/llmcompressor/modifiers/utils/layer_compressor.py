@@ -1,7 +1,7 @@
 import operator
 from typing import Dict, Tuple
 
-import torch
+import torch, gc
 from compressed_tensors import get_execution_device
 from loguru import logger
 from torch.nn import Module
@@ -129,15 +129,21 @@ class LayerCompressor:
         :return: outputs of the layer
         """
         outputs = [None for _ in range(len(intermediates))]
-        for idx in tqdm(range(len(intermediates))):
+        
+        from pyt.meta.process_utils import get_total_memory
+        tqdm_obj = tqdm(range(len(intermediates)))
+        for idx in tqdm_obj:
             args, kwargs = intermediates[idx]
             device = get_execution_device(self.layer)
             output = self.layer(*tensors_to_device(args, device), **kwargs)
             outputs[idx] = (tensors_to_device(output, "cpu"), kwargs)
+            
             devices = [torch.device(f'cuda:{i}') for i in range(torch.cuda.device_count())]
             for device in devices:
                 torch.cuda.synchronize(device)
             torch.cuda.empty_cache()
+            gc.collect()
+            tqdm_obj.set_postfix({"Memory": get_total_memory()})
 
         return outputs
 

@@ -1,7 +1,7 @@
 from itertools import cycle
 from typing import Callable, Dict, List, Optional, Tuple
 
-import torch
+import torch, gc
 from torch.nn import Module
 from torch.utils.data import DataLoader
 from tqdm import tqdm
@@ -86,7 +86,10 @@ def run_calibration_forward(
     intermediates = []
 
     # run through the calibration data
-    for batch_idx, batch in enumerate(tqdm(_dataloader)):
+    
+    from pyt.meta.process_utils import get_total_memory
+    tqdm_obj = tqdm(_dataloader)    
+    for batch_idx, batch in enumerate(tqdm_obj):
         if num_calibration_steps and batch_idx >= num_calibration_steps:
             break
         if mask_padding:
@@ -102,11 +105,12 @@ def run_calibration_forward(
 
         # TODO: not ideal, figure out where we aren't freeing memory instead
         # currently without this we run OOM on the 2nd forward pass
-        
         devices = [torch.device(f'cuda:{i}') for i in range(torch.cuda.device_count())]
         for device in devices:
             torch.cuda.synchronize(device)
         torch.cuda.empty_cache()
+        gc.collect()
+        tqdm_obj.set_postfix({"Memory": get_total_memory()})
 
     return intermediates
 

@@ -7,6 +7,8 @@ from torch.utils.data import DataLoader
 from tqdm import tqdm
 
 from llmcompressor.pytorch.utils import tensors_module_forward, tensors_to_device
+from llmcompressor.utils.metric_logging import get_GPU_memory_usage
+
 
 __all__ = [
     "EarlyStopException",
@@ -88,6 +90,18 @@ def run_calibration_forward(
     # run through the calibration data
     
     from pyt.meta.process_utils import get_total_memory
+    
+    def get_gpu_usage():
+        gpu_usage = get_GPU_memory_usage()
+        if len(gpu_usage) == 0:
+            return
+        ret = []
+        for i in range(len(gpu_usage)):
+            perc = gpu_usage[i][0] * 100
+            # total_memory = int(gpu_usage[i][1])  # GB
+            ret.append(f"{i}:{perc:.2f}%")
+        return "|".join(ret)
+        
     tqdm_obj = tqdm(_dataloader)    
     for batch_idx, batch in enumerate(tqdm_obj):
         if num_calibration_steps and batch_idx >= num_calibration_steps:
@@ -110,7 +124,7 @@ def run_calibration_forward(
             torch.cuda.synchronize(device)
         torch.cuda.empty_cache()
         gc.collect()
-        tqdm_obj.set_postfix({"Memory": get_total_memory()})
+        tqdm_obj.set_postfix({"Mem": get_total_memory(), "GPU": get_gpu_usage()})
 
     return intermediates
 

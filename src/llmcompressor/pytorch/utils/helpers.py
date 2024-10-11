@@ -320,6 +320,9 @@ def tensors_to_device(
     if isinstance(tensors, Iterable):
         return [tensors_to_device(tens, device) for tens in tensors]
 
+    if tensors is None:
+        return None
+
     raise ValueError(
         "unrecognized type for tensors given of {}".format(tensors.__class__.__name__)
     )

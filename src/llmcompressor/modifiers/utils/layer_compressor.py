@@ -16,6 +16,7 @@ from llmcompressor.utils.fsdp.context import (
 )
 from llmcompressor.utils.pytorch import set_layer
 from llmcompressor.utils.pytorch.module import get_prunable_layers
+from llmcompressor.utils.metric_logging import get_GPU_memory_usage
 
 __all__ = ["LayerCompressor"]
 
@@ -131,6 +132,17 @@ class LayerCompressor:
         outputs = [None for _ in range(len(intermediates))]
         
         from pyt.meta.process_utils import get_total_memory
+            
+        def get_gpu_usage():
+            gpu_usage = get_GPU_memory_usage()
+            if len(gpu_usage) == 0:
+                return
+            ret = []
+            for i in range(len(gpu_usage)):
+                perc = gpu_usage[i][0] * 100
+                ret.append(f"{i}:{perc:.2f}%")
+            return "|".join(ret)
+        
         tqdm_obj = tqdm(range(len(intermediates)))
         for idx in tqdm_obj:
             args, kwargs = intermediates[idx]
@@ -143,7 +155,7 @@ class LayerCompressor:
                 torch.cuda.synchronize(device)
             torch.cuda.empty_cache()
             gc.collect()
-            tqdm_obj.set_postfix({"Memory": get_total_memory()})
+            tqdm_obj.set_postfix({"Mem": get_total_memory(), "GPU": get_gpu_usage()})
 
         return outputs
 

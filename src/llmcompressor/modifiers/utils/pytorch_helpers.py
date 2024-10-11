@@ -98,7 +98,6 @@ def run_calibration_forward(
         ret = []
         for i in range(len(gpu_usage)):
             perc = gpu_usage[i][0] * 100
-            # total_memory = int(gpu_usage[i][1])  # GB
             ret.append(f"{i}:{perc:.2f}%")
         return "|".join(ret)
         

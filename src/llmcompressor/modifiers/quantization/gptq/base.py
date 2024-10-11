@@ -26,6 +26,11 @@ from llmcompressor.utils.pytorch.module import (
     get_no_split_params,
     qat_active,
 )
+from llmcompressor.utils.metric_logging import (
+    get_GPU_memory_usage,
+    get_layer_size_bytes,
+)
+from pyt.meta.process_utils import get_total_memory
 
 __all__ = ["GPTQModifier"]
 
@@ -200,16 +205,20 @@ class GPTQModifier(Modifier):
             # decoder layers (ie LlamaDecoderLayer)
             self.sequential_targets = get_no_split_params(modifiable_model)
             
-        from pyt.meta.process_utils import get_total_memory
         
         logger.info(f"GPTQModifier on_initialize: begin initialize_compression!")
         logger.info(f"Total memory: {get_total_memory()}")
+        self._log_gpu_usage()
         self.initialize_compression(modifiable_model, calibration_dataloader)
+        
         logger.info(f"GPTQModifier on_initialize: begin apply_compression!")
         logger.info(f"Total memory: {get_total_memory()}")
+        self._log_gpu_usage()
         self.apply_compression(calibration_dataloader)
+        
         logger.info(f"GPTQModifier on_initialize: apply freeze_module_quantization!")
         logger.info(f"Total memory: {get_total_memory()}")
+        self._log_gpu_usage()
         state.model.apply(freeze_module_quantization)
 
         return True
@@ -316,6 +325,8 @@ class GPTQModifier(Modifier):
         num_layers = len(self.compressible_layers_)
         for idx, layer_compressor in enumerate(self.layer_compressors_):
             logger.info(f"\n===== Compressing layer {idx+1}/{num_layers} " " =====")
+            logger.info(f"Total memory: {get_total_memory()}")
+            self._log_gpu_usage()
 
             if self.sequential_update:
                 # in sequential mode we run the forward pass for each transformer layer
@@ -345,6 +356,7 @@ class GPTQModifier(Modifier):
                 torch.cuda.synchronize(device)
             torch.cuda.empty_cache()
             gc.collect()
+            logger.info(f"\n===== Finished Compressing layer {idx+1}/{num_layers} " " =====")
 
         self.model.config.use_cache = forward_pass_use_cache
 
@@ -405,3 +417,18 @@ class GPTQModifier(Modifier):
         :return: wrapper class used for root modules of this compression class
         """
         return GPTQWrapper
+    
+    def _log_gpu_usage(self):
+        patch = logger.patch(lambda r: r.update(function="compress"))
+        gpu_usage = get_GPU_memory_usage()
+        if len(gpu_usage) > 0:
+            for i in range(len(gpu_usage)):
+                perc = gpu_usage[i][0] * 100
+                total_memory = int(gpu_usage[i][1])  # GB
+                patch.log(
+                    "METRIC",
+                    (
+                        f"GPU {i} | usage: {perc:.2f}%"
+                        f" | total memory: {total_memory} GB"
+                    ),
+                )

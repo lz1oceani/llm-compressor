@@ -349,7 +349,6 @@ class GPTQModifier(Modifier):
                 logger.info(f"Mean output error from quantization: {error:.3f}")
                 intermediates = quantized_outputs
                 del unquantized_outputs
-            logger.info(f"\n===== Finish compressing layer {idx+1}/{num_layers} " " =====")
 
             devices = [torch.device(f'cuda:{i}') for i in range(torch.cuda.device_count())]
             for device in devices:

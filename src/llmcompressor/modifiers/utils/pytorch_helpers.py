@@ -29,7 +29,7 @@ class EarlyStopException(Exception):
 
     def __init__(self, args: Tuple, kwargs: Dict):
         self.args = tensors_to_device(args, "cpu")
-        self.kwargs = kwargs
+        self.kwargs = tensors_to_device(kwargs, "cpu")
 
 
 def apply_pad_mask_to_batch(batch: Dict[str, torch.Tensor]) -> Dict[str, torch.Tensor]:

@@ -147,7 +147,7 @@ class LayerCompressor:
         for idx in tqdm_obj:
             args, kwargs = intermediates[idx]
             device = get_execution_device(self.layer)
-            output = self.layer(*tensors_to_device(args, device), **kwargs)
+            output = self.layer(*tensors_to_device(args, device), **tensors_to_device(kwargs, device))
             outputs[idx] = (tensors_to_device(output, "cpu"), kwargs)
             
             devices = [torch.device(f'cuda:{i}') for i in range(torch.cuda.device_count())]

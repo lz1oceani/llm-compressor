@@ -128,7 +128,10 @@ def hessian_memory_requirements(model: torch.nn.Module) -> int:
         for name, module in no_split_layer.named_modules():
             if isinstance(module, Linear):
                 for param in module.parameters():
-                    column_size = param.shape[1]
+                    try:
+                        column_size = param.shape[1]
+                    except:
+                        continue
                     total_hessian_elems[no_split_name] += column_size * column_size
                     if column_size > max_column_size[no_split_name]:
                         # max extra memory for inverse calculation
@@ -237,7 +240,9 @@ def calculate_offload_device_map(
         reserved_memory = 0
         if reserve_for_hessians:
             reserved_memory = hessian_memory_requirements(dummy_model)
+            print("Add reserved memory for hessians: ", reserved_memory)
         reserved_memory += quantization_memory_requirement(dummy_model)
+        print("Add reserved memory for quantization: ", reserved_memory)
 
         memory_limits = {
             idx: (max_memory - reserved_memory)

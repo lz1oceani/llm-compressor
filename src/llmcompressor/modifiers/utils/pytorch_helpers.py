@@ -82,6 +82,7 @@ def run_calibration_forward(
         if num_calibration_steps is None
         else cycle(calibration_dataloader)
     )
+    print(f"Run calibration forward with {type(model)} model!")
 
     # Store any inputs caught from early stopping, used for sequential compression
     # of GPTQ, SparseGPT and WANDA
@@ -115,7 +116,13 @@ def run_calibration_forward(
                 # model was stopped early, save last calculated output and
                 # move on to next calibration sample
                 intermediates.append((e.args, e.kwargs))
-
+        try:
+            kwargs_keys = str(list(intermediates[-1][1].keys()))
+            num_args = len(intermediates[-1][0])
+        except:
+            num_args = "NA"
+            kwargs_keys = "NA"
+        
         # TODO: not ideal, figure out where we aren't freeing memory instead
         # currently without this we run OOM on the 2nd forward pass
         devices = [torch.device(f'cuda:{i}') for i in range(torch.cuda.device_count())]
@@ -123,7 +130,7 @@ def run_calibration_forward(
             torch.cuda.synchronize(device)
         torch.cuda.empty_cache()
         gc.collect()
-        tqdm_obj.set_postfix({"Mem": get_total_memory(), "GPU": get_gpu_usage()})
+        tqdm_obj.set_postfix({"Mem": get_total_memory(), "GPU": get_gpu_usage(), "Args": num_args, "Kwargs": kwargs_keys})
 
     return intermediates
 

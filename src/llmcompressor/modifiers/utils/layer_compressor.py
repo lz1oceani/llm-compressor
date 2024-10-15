@@ -79,7 +79,7 @@ class LayerCompressor:
 
         def trigger_early_stop_fn(self, args, kwargs):
             raise EarlyStopException(args, kwargs)
-
+        print(f"Set early stop for {self.name} type {type(self.layer)}")
         self.early_stop_handle = self.layer.register_forward_pre_hook(
             trigger_early_stop_fn, with_kwargs=True
         )

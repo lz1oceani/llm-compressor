@@ -42,8 +42,8 @@ def get_output_error(
             "Number of samples of weight-unquantized and weight-quantized "
             "outputs differs"
         )
-    num_unq = sum([1 for _ in unquantized_outputs if _ is not None])
-    num_q = sum([1 for _ in quantized_outputs if _ is not None])
+    num_unq = sum([1 for _ in unquantized_outputs if isinstance(_, torch.Tensor)])
+    num_q = sum([1 for _ in quantized_outputs if isinstance(_, torch.Tensor)])
     assert num_q == num_unq, (
         f"Number of samples of weight-unquantized and weight-quantized "
         f"outputs differs: {num_unq} vs {num_q}"
@@ -51,6 +51,6 @@ def get_output_error(
     return sum(
         [
             torch.nn.functional.l1_loss(unq, q)
-            for unq, q in zip(unquantized_outputs, quantized_outputs) if unq is not None
+            for unq, q in zip(unquantized_outputs, quantized_outputs) if isinstance(unq, torch.Tensor)
         ]
     ) / num_q

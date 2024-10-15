@@ -249,6 +249,7 @@ def calculate_offload_device_map(
             for idx, max_memory in enumerate(max_gpu_memory)
         }
         memory_limits["cpu"] = max_cpu_memory
+        print("CPU memory limits: ", memory_limits["cpu"])
 
         device_map = infer_auto_device_map(
             dummy_model,

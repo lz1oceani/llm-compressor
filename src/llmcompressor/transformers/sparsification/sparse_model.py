@@ -14,6 +14,7 @@ from loguru import logger
 from torch.nn import Module
 from transformers import AutoModelForCausalLM, PreTrainedModel
 
+from llmcompressor.utils.metric_logging import get_GPU_memory_usage
 from llmcompressor.pytorch.model_load.helpers import initialize_recipe
 from llmcompressor.transformers.sparsification.compressed_tensors_utils import (
     modify_save_pretrained,
@@ -22,6 +23,7 @@ from llmcompressor.transformers.utils.helpers import (
     download_model_directory,
     resolve_recipe,
 )
+
 
 __all__ = [
     "wrap_hf_model_class",
@@ -81,10 +83,12 @@ def wrap_hf_model_class(hf_model_class: PreTrainedModel) -> PreTrainedModel:
             pretrained_model_name_or_path, **kwargs
         )
 
+        print("Before creating ModelCompressor", get_GPU_memory_usage(), flush=True)
         # instantiate compressor from model config
         compressor = ModelCompressor.from_pretrained(
             pretrained_model_name_or_path, **kwargs
         )
+        print("After creating ModelCompressor", get_GPU_memory_usage(), flush=True)
 
         # temporarily set the log level to error, to ignore printing out long missing
         # and unexpected key error messages (these are EXPECTED for quantized models)
@@ -101,9 +105,11 @@ def wrap_hf_model_class(hf_model_class: PreTrainedModel) -> PreTrainedModel:
             # (has_remote_code and trust_remote_code) == True
             cls.__name__ = hf_model_class.__name__
 
+        print("Before creating AutoModel", get_GPU_memory_usage(), flush=True)
         model = super(hf_model_class, cls).from_pretrained(
             pretrained_model_name_or_path, *model_args, **kwargs
         )
+        print("After creating AutoModel", get_GPU_memory_usage(), flush=True)
 
         if model.dtype != model.config.torch_dtype:
             logger.warning(

@@ -59,7 +59,7 @@ setup(
         "transformers>4.0,<5.0",
         "datasets",
         "accelerate>=0.20.3",
-        "pynvml==11.5.3",
+        "nvidia-ml-py",
         "compressed-tensors"
         if version_info.build_type == "release"
         else "compressed-tensors-nightly",
